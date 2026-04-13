@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Contract Manager
+Comment=Manage licenses, contracts & subscriptions
+GenericName=Utilities
+Exec=python .local/share/contract-manager/main.py
+Icon=.local/share/contract-manager/contract_manager.png
+Type=Application
+StartupNotify=true
+StartupWMClass=com.ww.ContractManager
+Categories=GNOME;GTK;Utility;
+MimeType=text/plain;
+Terminal=false
+
