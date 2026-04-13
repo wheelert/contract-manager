@@ -149,8 +149,11 @@ class MainWindow(Adw.ApplicationWindow):
             column = Gtk.TreeViewColumn(title, renderer, text=col_id)
             column.set_resizable(True)
             column.set_expand(expand)
+            column.set_sort_column_id(col_id)
+            column.set_clickable(True)
             self.contracts_tree.append_column(column)
         
+        self.contracts_tree.set_headers_clickable(True)
         self.contracts_tree.connect('row-activated', self.on_contract_activated)
         scrolled.set_child(self.contracts_tree)
         
@@ -196,8 +199,11 @@ class MainWindow(Adw.ApplicationWindow):
             column = Gtk.TreeViewColumn(title, renderer, text=col_id)
             column.set_resizable(True)
             column.set_expand(expand)
+            column.set_sort_column_id(col_id)
+            column.set_clickable(True)
             self.subscriptions_tree.append_column(column)
         
+        self.subscriptions_tree.set_headers_clickable(True)
         self.subscriptions_tree.connect('row-activated', self.on_subscription_activated)
         scrolled.set_child(self.subscriptions_tree)
         
@@ -243,8 +249,11 @@ class MainWindow(Adw.ApplicationWindow):
             column = Gtk.TreeViewColumn(title, renderer, text=col_id)
             column.set_resizable(True)
             column.set_expand(expand)
+            column.set_sort_column_id(col_id)
+            column.set_clickable(True)
             self.licenses_tree.append_column(column)
         
+        self.licenses_tree.set_headers_clickable(True)
         self.licenses_tree.connect('row-activated', self.on_license_activated)
         scrolled.set_child(self.licenses_tree)
         
