@@ -29,7 +29,9 @@ APPDIR=~/.local/share/contract-manager
 	cp src/*.py $APPDIR
 
 	cp src/contract_manager.png $APPDIR
-	cp src/contract-manager.desktop ~/.local/share/applications/
+	#cp src/contract-manager.desktop ~/.local/share/applications/
+	sed 's|#HOME#|'$HOME'|g' src/contract-manager.desktop > ~/.local/share/applications/contract-manager.desktop
+
 	  sleep 2
 	 echo "100"
 	 echo "# Done!"
