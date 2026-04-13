@@ -270,3 +270,153 @@ class Database:
         conn.commit()
         conn.close()
         return True
+
+    def get_items_by_date_range(self, start_date, end_date):
+        """Get all items (contracts, subscriptions, licenses) within a date range.
+        
+        Args:
+            start_date: ISO format date string (YYYY-MM-DD)
+            end_date: ISO format date string (YYYY-MM-DD)
+            
+        Returns:
+            List of dicts with item_type, name, relevant_date, and item_data
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        items = []
+        
+        # Get contracts with end_date in range
+        cursor.execute("""
+            SELECT * FROM contracts 
+            WHERE end_date IS NOT NULL AND end_date >= ? AND end_date <= ?
+            ORDER BY end_date ASC
+        """, (start_date, end_date))
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            items.append({
+                'item_type': 'Contract',
+                'name': row_dict['name'],
+                'relevant_date': row_dict['end_date'],
+                'date_type': 'End Date',
+                'vendor': row_dict['vendor'],
+                'value': row_dict['value'],
+                'currency': row_dict['currency'],
+                'id': row_dict['id'],
+                'item_data': row_dict
+            })
+        
+        # Get subscriptions with next_billing_date in range
+        cursor.execute("""
+            SELECT * FROM subscriptions 
+            WHERE next_billing_date IS NOT NULL AND next_billing_date >= ? AND next_billing_date <= ?
+            ORDER BY next_billing_date ASC
+        """, (start_date, end_date))
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            items.append({
+                'item_type': 'Subscription',
+                'name': row_dict['name'],
+                'relevant_date': row_dict['next_billing_date'],
+                'date_type': 'Next Billing',
+                'vendor': row_dict['provider'],
+                'value': row_dict['cost'],
+                'currency': row_dict['currency'],
+                'id': row_dict['id'],
+                'item_data': row_dict
+            })
+        
+        # Get licenses with expiration_date in range
+        cursor.execute("""
+            SELECT * FROM licenses 
+            WHERE expiration_date IS NOT NULL AND expiration_date >= ? AND expiration_date <= ?
+            ORDER BY expiration_date ASC
+        """, (start_date, end_date))
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            items.append({
+                'item_type': 'License',
+                'name': row_dict['name'],
+                'relevant_date': row_dict['expiration_date'],
+                'date_type': 'Expiration',
+                'vendor': row_dict['vendor'],
+                'value': None,
+                'currency': 'USD',
+                'id': row_dict['id'],
+                'item_data': row_dict
+            })
+        
+        # Sort all items by relevant_date
+        items.sort(key=lambda x: x['relevant_date'])
+        conn.close()
+        return items
+    
+    def get_all_items_by_date(self, item_type=None):
+        """Get all items sorted by their relevant date.
+        
+        Args:
+            item_type: Optional filter for 'contract', 'subscription', or 'license'
+            
+        Returns:
+            List of dicts with item info
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        items = []
+        
+        if item_type is None or item_type == 'contract':
+            cursor.execute("""
+                SELECT id, name, vendor, end_date, value, currency FROM contracts 
+                WHERE end_date IS NOT NULL
+                ORDER BY end_date ASC
+            """)
+            for row in cursor.fetchall():
+                row_dict = dict(row)
+                items.append({
+                    'item_type': 'Contract',
+                    'name': row_dict['name'],
+                    'relevant_date': row_dict['end_date'],
+                    'date_type': 'End Date',
+                    'vendor': row_dict['vendor'],
+                    'value': row_dict['value'],
+                    'currency': row_dict['currency']
+                })
+        
+        if item_type is None or item_type == 'subscription':
+            cursor.execute("""
+                SELECT id, name, provider, next_billing_date, cost, currency FROM subscriptions 
+                WHERE next_billing_date IS NOT NULL
+                ORDER BY next_billing_date ASC
+            """)
+            for row in cursor.fetchall():
+                row_dict = dict(row)
+                items.append({
+                    'item_type': 'Subscription',
+                    'name': row_dict['name'],
+                    'relevant_date': row_dict['next_billing_date'],
+                    'date_type': 'Next Billing',
+                    'vendor': row_dict['provider'],
+                    'value': row_dict['cost'],
+                    'currency': row_dict['currency']
+                })
+        
+        if item_type is None or item_type == 'license':
+            cursor.execute("""
+                SELECT id, name, vendor, expiration_date FROM licenses 
+                WHERE expiration_date IS NOT NULL
+                ORDER BY expiration_date ASC
+            """)
+            for row in cursor.fetchall():
+                row_dict = dict(row)
+                items.append({
+                    'item_type': 'License',
+                    'name': row_dict['name'],
+                    'relevant_date': row_dict['expiration_date'],
+                    'date_type': 'Expiration',
+                    'vendor': row_dict['vendor'],
+                    'value': None,
+                    'currency': 'USD'
+                })
+        
+        items.sort(key=lambda x: x['relevant_date'])
+        conn.close()
+        return items

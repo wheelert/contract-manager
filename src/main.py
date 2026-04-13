@@ -47,6 +47,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.build_contracts_view()
         self.build_subscriptions_view()
         self.build_licenses_view()
+        self.build_reports_view()
         
         self.show_contracts_view()
         
@@ -87,6 +88,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.licenses_btn = Gtk.Button(label='License Keys')
         self.licenses_btn.set_halign(Gtk.Align.FILL)
         self.licenses_btn.connect('clicked', self.on_licenses_clicked)
+        
+        self.reports_btn = Gtk.Button(label='Reports')
+        self.reports_btn.set_halign(Gtk.Align.FILL)
+        self.reports_btn.connect('clicked', self.on_reports_clicked)
+        nav_box.append(self.reports_btn)
         nav_box.append(self.licenses_btn)
         
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
@@ -421,6 +427,140 @@ class MainWindow(Adw.ApplicationWindow):
         dialog = Adw.MessageDialog.new(self, 'Error', message)
         dialog.add_response('ok', 'OK')
         dialog.present()
+
+
+    def build_reports_view(self):
+        self.reports_view = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.view_stack.add_named(self.reports_view, 'reports')
+        
+        # Filter toolbar
+        toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        toolbar.set_margin_top(12)
+        toolbar.set_margin_bottom(12)
+        toolbar.set_margin_start(12)
+        toolbar.set_margin_end(12)
+        toolbar.set_spacing(8)
+        self.reports_view.append(toolbar)
+        
+        # Filter label
+        filter_label = Gtk.Label(label='Filter by:')
+        toolbar.append(filter_label)
+        
+        # Type filter
+        self.reports_type_filter = Gtk.DropDown()
+        type_list = Gtk.StringList()
+        type_list.append('All Items')
+        type_list.append('Contracts')
+        type_list.append('Subscriptions')
+        type_list.append('Licenses')
+        self.reports_type_filter.set_model(type_list)
+        self.reports_type_filter.connect('notify::selected', self.on_reports_filter_changed)
+        toolbar.append(self.reports_type_filter)
+        
+        # Date range
+        date_label = Gtk.Label(label='Date Range:')
+        date_label.set_margin_start(12)
+        toolbar.append(date_label)
+        
+        self.reports_start_date = DateEntry()
+        self.reports_start_date.set_text('2024-01-01')
+        self.reports_start_date.set_size_request(120, -1)
+        toolbar.append(self.reports_start_date)
+        
+        to_label = Gtk.Label(label='to')
+        toolbar.append(to_label)
+        
+        self.reports_end_date = DateEntry()
+        self.reports_end_date.set_text('2025-12-31')
+        self.reports_end_date.set_size_request(120, -1)
+        toolbar.append(self.reports_end_date)
+        
+        # Apply button
+        apply_btn = Gtk.Button(label='Apply')
+        apply_btn.connect('clicked', self.on_reports_filter_changed)
+        toolbar.append(apply_btn)
+        
+        # Clear button
+        clear_btn = Gtk.Button(label='Clear')
+        clear_btn.connect('clicked', self.on_reports_clear_filter)
+        toolbar.append(clear_btn)
+        
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_vexpand(True)
+        self.reports_view.append(scrolled)
+        
+        self.reports_store = Gtk.ListStore(str, str, str, str, str, str, str)
+        self.reports_tree = Gtk.TreeView(model=self.reports_store)
+        
+        columns = [
+            ('Type', 0, False),
+            ('Name', 1, True),
+            ('Vendor/Provider', 2, True),
+            ('Date', 3, True),
+            ('Date Type', 4, False),
+            ('Value', 5, False),
+            ('Currency', 6, False)
+        ]
+        
+        for title, col_id, expand in columns:
+            renderer = Gtk.CellRendererText()
+            renderer.set_property('ellipsize', True)
+            column = Gtk.TreeViewColumn(title, renderer, text=col_id)
+            column.set_resizable(True)
+            column.set_expand(expand)
+            column.set_sort_column_id(col_id)
+            column.set_clickable(True)
+            self.reports_tree.append_column(column)
+        
+        self.reports_tree.set_headers_clickable(True)
+        scrolled.set_child(self.reports_tree)
+        
+        self.refresh_reports()
+    
+    def show_reports_view(self):
+        self.view_stack.set_visible_child_name('reports')
+        self.header.set_title_widget(Gtk.Label(label='Reports by Date'))
+    
+    def on_reports_clicked(self, btn):
+        self.show_reports_view()
+    
+    def on_reports_filter_changed(self, *args):
+        self.refresh_reports()
+    
+    def on_reports_clear_filter(self, btn):
+        self.reports_start_date.set_text('')
+        self.reports_end_date.set_text('')
+        self.reports_type_filter.set_selected(0)
+        self.refresh_reports()
+    
+    def refresh_reports(self):
+        self.reports_store.clear()
+        db = self.get_application().db
+        
+        type_idx = self.reports_type_filter.get_selected()
+        type_map = {0: None, 1: 'contract', 2: 'subscription', 3: 'license'}
+        item_type = type_map.get(type_idx)
+        
+        start_text = self.reports_start_date.get_text().strip()
+        end_text = self.reports_end_date.get_text().strip()
+        
+        if start_text and end_text:
+            items = db.get_items_by_date_range(start_text, end_text)
+        else:
+            items = db.get_all_items_by_date(item_type)
+        
+        for item in items:
+            value_str = f"{item['value']:.2f}" if item['value'] else ''
+            currency_str = item.get('currency', 'USD') if item['value'] else ''
+            self.reports_store.append([
+                item['item_type'],
+                item['name'],
+                item['vendor'] or '',
+                item['relevant_date'] or '',
+                item['date_type'],
+                value_str,
+                currency_str
+            ])
 
 class ContractDialog(Adw.Window):
     def __init__(self, parent, contract=None):
