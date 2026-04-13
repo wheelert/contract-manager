@@ -2,9 +2,22 @@ import sqlite3
 import json
 from datetime import datetime
 from pathlib import Path
+import os
 
 class Database:
     def __init__(self, db_path="data/contracts.db"):
+        
+    
+        HOME = Path.home()
+        APPDIR = str( HOME )+'/.local/share/contract-manager/'
+        os.makedirs(APPDIR, exist_ok=True)
+        db_path = APPDIR+db_path
+
+        self.db_path = db_path
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.init_db()
+    
+
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self.init_db()
@@ -178,7 +191,7 @@ class Database:
         cursor.execute("""
             INSERT INTO licenses (name, software, license_key, license_type, version, seats,
                                   activation_date, expiration_date, vendor, order_id, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (data['name'], data['software'], data['license_key'], data.get('license_type'),
               data.get('version'), data.get('seats', 1), data.get('activation_date'), data.get('expiration_date'),
               data.get('vendor'), data.get('order_id'), data.get('notes')))
