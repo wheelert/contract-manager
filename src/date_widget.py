@@ -26,6 +26,7 @@ class DateEntry(Gtk.Box):
         self.append(self.button)
         
         self.popover = None
+        self.calendar = None
         
     def on_entry_changed(self, entry):
         # Validate date format as user types
@@ -56,24 +57,28 @@ class DateEntry(Gtk.Box):
             date = datetime.now()
         
         # Create calendar widget
-        calendar = Gtk.Calendar()
-        calendar.select_day(GLib.DateTime.new_local(date.year, date.month, date.day, 0, 0, 0))
+        self.calendar = Gtk.Calendar()
+        
+        # Set the date using GLib.DateTime
+        g_date = GLib.DateTime.new_local(date.year, date.month, date.day, 0, 0, 0)
+        self.calendar.select_day(g_date)
         
         # Create popover
         self.popover = Gtk.Popover()
-        self.popover.set_child(calendar)
+        self.popover.set_child(self.calendar)
         self.popover.set_parent(self.button)
         
-        # Connect selection
-        calendar.connect('day-selected', self.on_day_selected, calendar)
+        # Connect selection - day-selected signal provides the calendar as first arg
+        self.calendar.connect('day-selected', self.on_day_selected)
         
         self.popover.popup()
     
-    def on_day_selected(self, calendar, *args):
-        # Get selected date
-        year = calendar.get_year()
-        month = calendar.get_month() + 1  # GTK months are 0-based
-        day = calendar.get_day_of_month()
+    def on_day_selected(self, calendar):
+        # Get selected date using get_date() which returns GLib.DateTime
+        date_time = calendar.get_date()
+        year = date_time.get_year()
+        month = date_time.get_month()
+        day = date_time.get_day_of_month()
         
         date_str = f"{year:04d}-{month:02d}-{day:02d}"
         self.entry.set_text(date_str)
