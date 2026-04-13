@@ -230,17 +230,18 @@ class MainWindow(Adw.ApplicationWindow):
         scrolled.set_vexpand(True)
         self.licenses_view.append(scrolled)
         
-        self.licenses_store = Gtk.ListStore(str, str, str, str, str, str, str)
+        self.licenses_store = Gtk.ListStore(str, str, str, str, str, str, str, str)
         self.licenses_tree = Gtk.TreeView(model=self.licenses_store)
         
         columns = [
             ('Name', 0, True),
             ('Software', 1, True),
             ('License Key', 2, True),
-            ('Type', 3, True),
-            ('Seats', 4, False),
-            ('Activation', 5, True),
-            ('Expiration', 6, True)
+            ('Version', 3, True),
+            ('Type', 4, True),
+            ('Seats', 5, False),
+            ('Activation', 6, True),
+            ('Expiration', 7, True)
         ]
         
         for title, col_id, expand in columns:
@@ -297,6 +298,7 @@ class MainWindow(Adw.ApplicationWindow):
                 l['name'],
                 l['software'],
                 key_display,
+                l['version'] or '',
                 l['license_type'] or '',
                 str(l['seats']) if l['seats'] else '1',
                 l['activation_date'] or '',
@@ -854,6 +856,7 @@ class LicenseDialog(Adw.Window):
         self.name_entry = self.create_entry(form, 'Name *')
         self.software_entry = self.create_entry(form, 'Software *')
         self.key_entry = self.create_entry(form, 'License Key *')
+        self.version_entry = self.create_entry(form, 'Version')
         
         # License type dropdown
         type_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -882,6 +885,8 @@ class LicenseDialog(Adw.Window):
             self.name_entry.set_text(license_data['name'])
             self.software_entry.set_text(license_data['software'])
             self.key_entry.set_text(license_data['license_key'])
+            if license_data['version']:
+                self.version_entry.set_text(license_data['version'])
             
             if license_data['license_type']:
                 types = ['', 'perpetual', 'subscription', 'trial', 'enterprise', 'oem']
@@ -988,6 +993,7 @@ class LicenseDialog(Adw.Window):
             'name': name,
             'software': software,
             'license_key': license_key,
+            'version': self.version_entry.get_text().strip() or None,
             'license_type': license_type,
             'seats': int(self.seats_entry.get_text()) if self.seats_entry.get_text() else 1,
             'activation_date': self.activation_entry.get_text().strip() or None,

@@ -63,6 +63,7 @@ class Database:
                 software TEXT NOT NULL,
                 license_key TEXT NOT NULL,
                 license_type TEXT CHECK(license_type IN ('perpetual', 'subscription', 'trial', 'enterprise', 'oem')),
+                version TEXT,
                 seats INTEGER DEFAULT 1,
                 activation_date TEXT,
                 expiration_date TEXT,
@@ -91,7 +92,7 @@ class Database:
         cursor.execute("""
             INSERT INTO contracts (name, vendor, contract_number, start_date, end_date, 
                                    value, currency, description, document_path, renewal_reminder)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (data['name'], data['vendor'], data.get('contract_number'), 
               data.get('start_date'), data.get('end_date'), data.get('value'),
               data.get('currency', 'USD'), data.get('description'), 
@@ -175,11 +176,11 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO licenses (name, software, license_key, license_type, seats,
+            INSERT INTO licenses (name, software, license_key, license_type, version, seats,
                                   activation_date, expiration_date, vendor, order_id, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (data['name'], data['software'], data['license_key'], data.get('license_type'),
-              data.get('seats', 1), data.get('activation_date'), data.get('expiration_date'),
+              data.get('version'), data.get('seats', 1), data.get('activation_date'), data.get('expiration_date'),
               data.get('vendor'), data.get('order_id'), data.get('notes')))
         conn.commit()
         conn.close()
@@ -188,11 +189,11 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            UPDATE licenses SET name=?, software=?, license_key=?, license_type=?, seats=?,
+            UPDATE licenses SET name=?, software=?, license_key=?, license_type=?, version=?, seats=?,
             activation_date=?, expiration_date=?, vendor=?, order_id=?, notes=?,
             updated_at=CURRENT_TIMESTAMP WHERE id=?
         """, (data['name'], data['software'], data['license_key'], data.get('license_type'),
-              data.get('seats', 1), data.get('activation_date'), data.get('expiration_date'),
+              data.get('version'), data.get('seats', 1), data.get('activation_date'), data.get('expiration_date'),
               data.get('vendor'), data.get('order_id'), data.get('notes'), license_id))
         conn.commit()
         conn.close()
@@ -230,7 +231,7 @@ class Database:
             cursor.execute("""
                 INSERT INTO contracts (id, name, vendor, contract_number, start_date, end_date,
                                      value, currency, description, document_path, renewal_reminder)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (c.get('id'), c['name'], c['vendor'], c.get('contract_number'), c.get('start_date'),
                   c.get('end_date'), c.get('value'), c.get('currency', 'USD'), c.get('description'),
                   c.get('document_path'), c.get('renewal_reminder', 30)))
@@ -246,11 +247,11 @@ class Database:
         
         for l in data.get('licenses', []):
             cursor.execute("""
-                INSERT INTO licenses (id, name, software, license_key, license_type, seats,
+                INSERT INTO licenses (id, name, software, license_key, license_type, version, seats,
                                       activation_date, expiration_date, vendor, order_id, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (l.get('id'), l['name'], l['software'], l['license_key'], l.get('license_type'),
-                  l.get('seats', 1), l.get('activation_date'), l.get('expiration_date'),
+                  l.get('version'), l.get('seats', 1), l.get('activation_date'), l.get('expiration_date'),
                   l.get('vendor'), l.get('order_id'), l.get('notes')))
         
         conn.commit()
