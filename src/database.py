@@ -58,6 +58,7 @@ class Database:
                 billing_cycle TEXT CHECK(billing_cycle IN ('monthly', 'yearly', 'quarterly', 'weekly')),
                 cost REAL,
                 currency TEXT DEFAULT 'USD',
+                quantity INTEGER DEFAULT 1,
                 start_date TEXT,
                 next_billing_date TEXT,
                 auto_renew INTEGER DEFAULT 1,
@@ -104,12 +105,12 @@ class Database:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO contracts (name, vendor, contract_number, start_date, end_date, 
-                                   value, currency, description, document_path, renewal_reminder)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   value, currency, description, renewal_reminder)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (data['name'], data['vendor'], data.get('contract_number'), 
               data.get('start_date'), data.get('end_date'), data.get('value'),
               data.get('currency', 'USD'), data.get('description'), 
-              data.get('document_path'), data.get('renewal_reminder', 30)))
+              data.get('renewal_reminder', 30)))
         conn.commit()
         conn.close()
     
@@ -147,12 +148,12 @@ class Database:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO subscriptions (name, provider, plan, billing_cycle, cost, currency,
-                                       start_date, next_billing_date, auto_renew, description, website, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                       quantity, start_date, next_billing_date, auto_renew, description, website, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (data['name'], data['provider'], data.get('plan'), data.get('billing_cycle'),
-              data.get('cost'), data.get('currency', 'USD'), data.get('start_date'),
-              data.get('next_billing_date'), data.get('auto_renew', 1), data.get('description'),
-              data.get('website'), data.get('notes')))
+              data.get('cost'), data.get('currency', 'USD'), data.get('quantity', 1),
+              data.get('start_date'), data.get('next_billing_date'), data.get('auto_renew', 1),
+              data.get('description'), data.get('website'), data.get('notes')))
         conn.commit()
         conn.close()
     
@@ -161,12 +162,12 @@ class Database:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE subscriptions SET name=?, provider=?, plan=?, billing_cycle=?, cost=?,
-            currency=?, start_date=?, next_billing_date=?, auto_renew=?, description=?,
+            currency=?, quantity=?, start_date=?, next_billing_date=?, auto_renew=?, description=?,
             website=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
         """, (data['name'], data['provider'], data.get('plan'), data.get('billing_cycle'),
-              data.get('cost'), data.get('currency', 'USD'), data.get('start_date'),
-              data.get('next_billing_date'), data.get('auto_renew', 1), data.get('description'),
-              data.get('website'), data.get('notes'), sub_id))
+              data.get('cost'), data.get('currency', 'USD'), data.get('quantity', 1),
+              data.get('start_date'), data.get('next_billing_date'), data.get('auto_renew', 1),
+              data.get('description'), data.get('website'), data.get('notes'), sub_id))
         conn.commit()
         conn.close()
     
@@ -252,11 +253,12 @@ class Database:
         for s in data.get('subscriptions', []):
             cursor.execute("""
                 INSERT INTO subscriptions (id, name, provider, plan, billing_cycle, cost, currency,
-                                           start_date, next_billing_date, auto_renew, description, website, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                           quantity, start_date, next_billing_date, auto_renew, description, website, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (s.get('id'), s['name'], s['provider'], s.get('plan'), s.get('billing_cycle'),
-                  s.get('cost'), s.get('currency', 'USD'), s.get('start_date'), s.get('next_billing_date'),
-                  s.get('auto_renew', 1), s.get('description'), s.get('website'), s.get('notes')))
+                  s.get('cost'), s.get('currency', 'USD'), s.get('quantity', 1), s.get('start_date'),
+                  s.get('next_billing_date'), s.get('auto_renew', 1), s.get('description'),
+                  s.get('website'), s.get('notes')))
         
         for l in data.get('licenses', []):
             cursor.execute("""

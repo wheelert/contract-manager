@@ -133,6 +133,13 @@ class MainWindow(Adw.ApplicationWindow):
         add_btn.connect('clicked', self.on_add_contract)
         toolbar.append(add_btn)
         
+        # Search entry
+        self.contracts_search = Gtk.Entry()
+        self.contracts_search.set_placeholder_text('Search contracts...')
+        self.contracts_search.set_hexpand(True)
+        self.contracts_search.connect('changed', self.on_contracts_search_changed)
+        toolbar.append(self.contracts_search)
+        
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_vexpand(True)
         self.contracts_view.append(scrolled)
@@ -182,11 +189,18 @@ class MainWindow(Adw.ApplicationWindow):
         add_btn.connect('clicked', self.on_add_subscription)
         toolbar.append(add_btn)
         
+        # Search entry
+        self.subscriptions_search = Gtk.Entry()
+        self.subscriptions_search.set_placeholder_text('Search subscriptions...')
+        self.subscriptions_search.set_hexpand(True)
+        self.subscriptions_search.connect('changed', self.on_subscriptions_search_changed)
+        toolbar.append(self.subscriptions_search)
+        
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_vexpand(True)
         self.subscriptions_view.append(scrolled)
         
-        self.subscriptions_store = Gtk.ListStore(str, str, str, str, str, str, str)
+        self.subscriptions_store = Gtk.ListStore(str, str, str, str, str, str, str, str)
         self.subscriptions_tree = Gtk.TreeView(model=self.subscriptions_store)
         
         columns = [
@@ -195,8 +209,9 @@ class MainWindow(Adw.ApplicationWindow):
             ('Plan', 2, True),
             ('Billing Cycle', 3, True),
             ('Cost', 4, True),
-            ('Next Billing', 5, True),
-            ('Auto-Renew', 6, False)
+            ('Qty', 5, False),
+            ('Next Billing', 6, True),
+            ('Auto-Renew', 7, False)
         ]
         
         for title, col_id, expand in columns:
@@ -231,6 +246,13 @@ class MainWindow(Adw.ApplicationWindow):
         add_btn.add_css_class('suggested-action')
         add_btn.connect('clicked', self.on_add_license)
         toolbar.append(add_btn)
+        
+        # Search entry
+        self.licenses_search = Gtk.Entry()
+        self.licenses_search.set_placeholder_text('Search licenses...')
+        self.licenses_search.set_hexpand(True)
+        self.licenses_search.connect('changed', self.on_licenses_search_changed)
+        toolbar.append(self.licenses_search)
         
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_vexpand(True)
@@ -267,31 +289,12 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh_licenses()
     
     def refresh_contracts(self):
-        self.contracts_store.clear()
-        contracts = self.get_application().db.get_contracts()
-        for c in contracts:
-            self.contracts_store.append([
-                c['name'],
-                c['vendor'],
-                c['contract_number'] or '',
-                c['start_date'] or '',
-                c['end_date'] or '',
-                f"{c['currency']} {c['value']}" if c['value'] else ''
-            ])
+        search_text = self.contracts_search.get_text().lower() if hasattr(self, 'contracts_search') else ''
+        self.filter_contracts(search_text)
     
     def refresh_subscriptions(self):
-        self.subscriptions_store.clear()
-        subs = self.get_application().db.get_subscriptions()
-        for s in subs:
-            self.subscriptions_store.append([
-                s['name'],
-                s['provider'],
-                s['plan'] or '',
-                s['billing_cycle'] or '',
-                f"{s['currency']} {s['cost']}" if s['cost'] else '',
-                s['next_billing_date'] or '',
-                'Yes' if s['auto_renew'] else 'No'
-            ])
+        search_text = self.subscriptions_search.get_text().lower() if hasattr(self, 'subscriptions_search') else ''
+        self.filter_subscriptions(search_text)
     
     def refresh_licenses(self):
         self.licenses_store.clear()
@@ -442,6 +445,13 @@ class MainWindow(Adw.ApplicationWindow):
         toolbar.set_spacing(8)
         self.reports_view.append(toolbar)
         
+        # Search entry
+        self.reports_search = Gtk.Entry()
+        self.reports_search.set_placeholder_text('Search reports...')
+        self.reports_search.set_hexpand(True)
+        self.reports_search.connect('changed', self.on_reports_search_changed)
+        toolbar.append(self.reports_search)
+        
         # Filter label
         filter_label = Gtk.Label(label='Filter by:')
         toolbar.append(filter_label)
@@ -534,6 +544,73 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh_reports()
     
     def refresh_reports(self):
+        search_text = self.reports_search.get_text().lower() if hasattr(self, 'reports_search') else ''
+        self.filter_reports(search_text)
+
+
+    def on_contracts_search_changed(self, entry):
+        search_text = entry.get_text().lower()
+        self.filter_contracts(search_text)
+    
+    def filter_contracts(self, search_text):
+        self.contracts_store.clear()
+        contracts = self.get_application().db.get_contracts()
+        for c in contracts:
+            if search_text in c['name'].lower() or search_text in c['vendor'].lower() or search_text in (c['contract_number'] or '').lower():
+                self.contracts_store.append([
+                    c['name'],
+                    c['vendor'],
+                    c['contract_number'] or '',
+                    c['start_date'] or '',
+                    c['end_date'] or '',
+                    f"{c['currency']} {c['value']}" if c['value'] else ''
+                ])
+    
+    def on_subscriptions_search_changed(self, entry):
+        search_text = entry.get_text().lower()
+        self.filter_subscriptions(search_text)
+    
+    def filter_subscriptions(self, search_text):
+        self.subscriptions_store.clear()
+        subs = self.get_application().db.get_subscriptions()
+        for s in subs:
+            if search_text in s['name'].lower() or search_text in s['provider'].lower() or search_text in (s['plan'] or '').lower():
+                self.subscriptions_store.append([
+                    s['name'],
+                    s['provider'],
+                    s['plan'] or '',
+                    s['billing_cycle'] or '',
+                    f"{s['currency']} {s['cost']}" if s['cost'] else '',
+                    str(s['quantity']) if s['quantity'] else '1',
+                    s['next_billing_date'] or '',
+                    'Yes' if s['auto_renew'] else 'No'
+                ])
+    
+    def on_licenses_search_changed(self, entry):
+        search_text = entry.get_text().lower()
+        self.filter_licenses(search_text)
+    
+    def filter_licenses(self, search_text):
+        self.licenses_store.clear()
+        licenses = self.get_application().db.get_licenses()
+        for l in licenses:
+            if search_text in l['name'].lower() or search_text in l['software'].lower() or search_text in (l['vendor'] or '').lower():
+                key_display = l['license_key']
+                if len(key_display) > 20:
+                    key_display = key_display[:20] + '...'
+                self.licenses_store.append([
+                    l['name'],
+                    l['software'],
+                    key_display,
+                    l['license_type'] or '',
+                    l['expiration_date'] or ''
+                ])
+    
+    def on_reports_search_changed(self, entry):
+        search_text = entry.get_text().lower()
+        self.filter_reports(search_text)
+    
+    def filter_reports(self, search_text):
         self.reports_store.clear()
         db = self.get_application().db
         
@@ -550,17 +627,18 @@ class MainWindow(Adw.ApplicationWindow):
             items = db.get_all_items_by_date(item_type)
         
         for item in items:
-            value_str = f"{item['value']:.2f}" if item['value'] else ''
-            currency_str = item.get('currency', 'USD') if item['value'] else ''
-            self.reports_store.append([
-                item['item_type'],
-                item['name'],
-                item['vendor'] or '',
-                item['relevant_date'] or '',
-                item['date_type'],
-                value_str,
-                currency_str
-            ])
+            if search_text in item['name'].lower() or                search_text in (item['vendor'] or '').lower() or                search_text in item['item_type'].lower():
+                value_str = f"{item['value']:.2f}" if item['value'] else ''
+                currency_str = item.get('currency', 'USD') if item['value'] else ''
+                self.reports_store.append([
+                    item['item_type'],
+                    item['name'],
+                    item['vendor'] or '',
+                    item['relevant_date'] or '',
+                    item['date_type'],
+                    value_str,
+                    currency_str
+                ])
 
 class ContractDialog(Adw.Window):
     def __init__(self, parent, contract=None):
@@ -787,6 +865,7 @@ class SubscriptionDialog(Adw.Window):
         
         self.cost_entry = self.create_entry(form, 'Cost')
         self.currency_entry = self.create_entry(form, 'Currency')
+        self.quantity_entry = self.create_entry(form, 'Quantity')
         self.start_entry = self.create_date_entry(form, 'Start Date')
         self.next_entry = self.create_date_entry(form, 'Next Billing Date')
         
@@ -816,9 +895,11 @@ class SubscriptionDialog(Adw.Window):
                 if subscription['billing_cycle'] in cycles:
                     self.billing_combo.set_selected(cycles.index(subscription['billing_cycle']))
             if subscription['cost']:
-                self.cost_entry.set_text(str(subscription['cost']))
-            if subscription['currency']:
-                self.currency_entry.set_text(subscription['currency'])
+                self.cost_entry.set_text(str(subscription["cost"]))
+            if subscription["currency"]:
+                self.currency_entry.set_text(subscription["currency"])
+            if subscription["quantity"]:
+                self.quantity_entry.set_text(str(subscription["quantity"]))
             if subscription['start_date']:
                 self.start_entry.set_text(subscription['start_date'])
             if subscription['next_billing_date']:
@@ -834,6 +915,7 @@ class SubscriptionDialog(Adw.Window):
                 buffer.set_text(subscription['notes'])
         else:
             self.currency_entry.set_text('USD')
+            self.quantity_entry.set_text('1')
         
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         btn_box.set_spacing(8)
@@ -919,6 +1001,7 @@ class SubscriptionDialog(Adw.Window):
             'provider': provider,
             'plan': self.plan_entry.get_text().strip() or None,
             'billing_cycle': billing_cycle,
+            'quantity': int(self.quantity_entry.get_text()) if self.quantity_entry.get_text() else 1,
             'cost': float(self.cost_entry.get_text()) if self.cost_entry.get_text() else None,
             'currency': self.currency_entry.get_text().strip() or 'USD',
             'start_date': self.start_entry.get_text().strip() or None,
